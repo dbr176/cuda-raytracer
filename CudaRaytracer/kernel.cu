@@ -216,7 +216,7 @@ __device__ float shadowRay(
 	return intencity;
 }
 
-#define DEPTH 3
+#define DEPTH 4
 
 __global__ void testHits(
 	Ray* rays,
