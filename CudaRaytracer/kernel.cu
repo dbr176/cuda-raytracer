@@ -15,8 +15,6 @@
 using namespace cv;
 using namespace std;
 
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
-
 struct Ray {
 	float3 direction;
 	float3 origin;
@@ -225,13 +223,15 @@ __global__ void testHits(
 	float4* result
 ) {
 	int rayIdx = threadIdx.x + blockIdx.x*blockDim.x;
+
+	// Light position
 	float3 lightPos = make_float3(-1.0f, 0, 10);
 
 	if (rayIdx < width * height) {
 		Ray ray = rays[rayIdx];
 
+		// Ambient color
 		result[rayIdx] = make_float4(0.00f, 0.00f, 0.00f, 1);
-		int hits = 0;
 
 		float3 hitPoints[DEPTH];
 		float3 normals[DEPTH];
@@ -239,6 +239,7 @@ __global__ void testHits(
 		float4 materialColor[DEPTH];
 		float4 shadowColors[DEPTH];
 
+		int hits = 0;
 		bool hit = false;
 
 		for (int depth = 0; depth < DEPTH; ++depth) {
@@ -255,6 +256,9 @@ __global__ void testHits(
 
 					auto normal = normalize(cross(e1, e2));
 					auto dist = dot(ray.origin - hitPoint, ray.origin - hitPoint);
+					
+					// hit point could be behind the triangle
+					// so I moved it 
 					hitPoint = hitPoint - 0.0001f * normal;
 
 					if (distances[depth] > dist) {
@@ -262,14 +266,15 @@ __global__ void testHits(
 						hitPoints[depth] = hitPoint;
 						distances[depth] = dist;
 						normals[depth] = normal;
-						materialColor[depth] = make_float4(0.5f, 0.0f, 0.0f, 1);
+						// material color
+						materialColor[depth] = make_float4(0.5f, 0.01f, 0.5f, 1);
 					}
 				}
 			}
 
 			if (!hit) break;
 			hits++;
-			ray.origin = hitPoints[depth]; //+ 5 * normals[depth];
+			ray.origin = hitPoints[depth];
 			ray.direction = reflect(ray.direction, normals[depth]);
 		}
 
@@ -278,7 +283,6 @@ __global__ void testHits(
 			Ray shadowRay;
 			shadowRay.direction = toLight;
 			shadowRay.origin = hitPoints[hitIdx];
-			distances[hitIdx] = 100000000000.0f;
 
 			hit = false;
 
@@ -295,20 +299,19 @@ __global__ void testHits(
 
 			if (!hit)
 			{
+				// Calculate light color and intensity
 				auto dist = 3 / sqrt(dot(lightPos - hitPoints[hitIdx], lightPos - hitPoints[hitIdx]));
 				shadowColors[hitIdx] = (make_float4(dist, dist, dist, 1) + make_float4(0.1f, 0.1f, 0.1f, 1)) / (hitIdx + 1);
 			}
 			else {
-				shadowColors[hitIdx] = make_float4(0.02f, 0.02f, 0.02f, 1);
+				// Ambient light color
+				shadowColors[hitIdx] = make_float4(0.00f, 10.02f, 0.0f, 1);
 			}
 		}
 
 		for (int hitIdx = hits - 1; hitIdx >= 0; --hitIdx) {
-			//result[rayIdx] = 10 * shadowColors[hitIdx];
 			result[rayIdx] += materialColor[hitIdx] * shadowColors[hitIdx];
 		}
-
-		//result[rayIdx] /= DEPTH;
 	}
 }
 
