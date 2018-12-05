@@ -267,7 +267,7 @@ __global__ void testHits(
 						distances[depth] = dist;
 						normals[depth] = normal;
 						// material color
-						materialColor[depth] = make_float4(0.5f, 0.01f, 0.5f, 1);
+						materialColor[depth] = make_float4(0.5f, 0.5f, 0.5f, 1);
 					}
 				}
 			}
@@ -305,7 +305,7 @@ __global__ void testHits(
 			}
 			else {
 				// Ambient light color
-				shadowColors[hitIdx] = make_float4(0.00f, 10.02f, 0.0f, 1);
+				shadowColors[hitIdx] = make_float4(0.00f, 0.02f, 0.0f, 1);
 			}
 		}
 
